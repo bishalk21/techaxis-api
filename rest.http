@@ -1,0 +1,17 @@
+### check server status
+GET http://localhost:8000/
+
+# =========Admin API==========
+### Post admin user
+POST http://localhost:8000/api/v1/admin-user
+Content-Type: application/json
+
+{
+    "fName": "Bishal",
+    "lName": "Karki",
+    "email": "abcdfe@g.com",
+    "password": "12a34599",
+    "phone": "9876543210",
+    "address": "Kathmandu",
+    "dob": "1990-01-01"
+}

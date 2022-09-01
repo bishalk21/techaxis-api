@@ -1,45 +1,65 @@
-import "dotenv/config";
-
-import express from "express";
+const path = require("path");
+// import path from "path";
+require("dotenv").config({ silent: process.env.NODE_ENV === "production" });
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const fileUpoad = require("express-fileupload");
 const app = express();
-app.use(express.json()); //middleware
-
-import cors from "cors";
+app.use(express.json());
 app.use(cors());
+app.use(cookieParser());
+app.use(fileUpoad({ useTempFiles: true }));
 
-import helmet from "helmet";
-import { DbConfig } from "./src/config/DbConfig.js";
-import AdminRouter from "./src/routers/AdminRouter.js";
-app.use(helmet());
-
-const PORT = process.env.PORT || 8000;
-DbConfig();
-
-app.use("/api/v1/admin-user", AdminRouter);
-
-app.get("/", (req, res) => {
-  res.json({
-    message: "hi there, welcome to the api",
+//Routes
+app.use("/user", require("./routes/userRouter"));
+app.use("/api", require("./routes/upload"));
+app.use("/courses", require("./routes/courseRouter"));
+app.use("/orders", require("./routes/orderRoutes"));
+app.get("/api/config/paypal", (req, res) =>
+  res.send(process.env.PAYPAL_CLIENT_ID)
+);
+app.use((err, req, res, next) => {
+  // because err.status is undefined
+  res.status(404).json({
+    error: {
+      message: err.message,
+    },
   });
 });
-
-app.use("/", (req, res, next) => {
-  res.json({
-    status: "404",
-    message: "404 not found",
+__dirname = path.resolve();
+console.log(__dirname);
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "/frontend/build")));
+  app.get("*", (req, res) =>
+    res.sendFile(path.resolve(__dirname, "frontend", "build", "index.html"))
+  );
+} else {
+  app.get("/", (req, res) => {
+    res.send("API is Runn....");
   });
-});
+}
 
-// error handling middleware
-app.use((error, req, res, next) => {
-  console.log(error);
-  const statusCode = error.statusCode || 404;
-  res.status(statusCode).json({
-    status: "error",
-    message: "something went wrong",
-  });
-});
+const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, (error) => {
-  error ? console.log(error) : console.log(`server is running on port ${PORT}`);
-});
+const CONNECTION_URL =
+  "mongodb+srv://souhail:souhail2001@cluster0.bnzut.mongodb.net/myDataBase?retryWrites=true&w=majority";
+
+mongoose
+  .connect(CONNECTION_URL, {
+    useNewUrlParser: true,
+    useFindAndModify: false,
+    useCreateIndex: true,
+    useUnifiedTopology: true,
+  })
+  .then(() =>
+    app.listen(PORT, () =>
+      console.log(
+        `Server MongoDb Connected Running on Port: http://localhost:${PORT}`
+      )
+    )
+  )
+  .catch((error) => console.log(`${error} did not connect`));
+
+mongoose.set("useFindAndModify", false);
